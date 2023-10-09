@@ -75,7 +75,7 @@ public class GraphicsPipeline : MonoBehaviour
         SaveVector4ToFile(imageAfterProjectionMatrix, "imageAfterProjectionMatrix.txt");
 
 
-
+        //SingleMatrix For everything 
         Matrix4x4 SingleMatrixForEverything = projectionMatrix * viewingMatrix * SingleMatrixOfTransformation;
 
         DisplayMatrix(SingleMatrixForEverything);
@@ -85,7 +85,7 @@ public class GraphicsPipeline : MonoBehaviour
         List<Vector4> imageAfterSingleMatrixForEverything = ApplyTransformation(verts, SingleMatrixForEverything);
 
         SaveVector4ToFile(imageAfterSingleMatrixForEverything, "imageAfterSingleMatrixForEverything.txt");
-
+        
 
 
     }
