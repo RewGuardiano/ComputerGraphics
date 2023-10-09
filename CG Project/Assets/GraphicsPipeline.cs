@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GraphicsPipeline : MonoBehaviour
@@ -11,11 +12,9 @@ public class GraphicsPipeline : MonoBehaviour
     {
         Model myModel = new Model();
         List<Vector4> verts = convertToHomg(myModel.vertices);
-        //  myModel.CreateUnityGameObject();
 
         Vector3 axis = (new Vector3(17, 0, 0)).normalized;
         Matrix4x4 rotationMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.AngleAxis(-31, axis), Vector3.one);
-
 
         DisplayMatrix(rotationMatrix);
 
@@ -31,7 +30,6 @@ public class GraphicsPipeline : MonoBehaviour
 
         SaveVector4ToFile(imageAfterScaling, "imageAfterScale.txt");
 
-
         Matrix4x4 translationMatrix = Matrix4x4.TRS(new Vector3(4, -4, 1), Quaternion.identity, Vector3.one);
 
         DisplayMatrix(translationMatrix);
@@ -44,7 +42,56 @@ public class GraphicsPipeline : MonoBehaviour
         SaveMatrixToFile(ScaleMatrix, "scaleMatrix.txt");
         SaveMatrixToFile(translationMatrix, "translationMatrix.txt");
 
+        Matrix4x4 SingleMatrixOfTransformation = translationMatrix * ScaleMatrix * rotationMatrix;
+
+        DisplayMatrix(SingleMatrixOfTransformation);
+
+        SaveMatrixToFile(SingleMatrixOfTransformation, "singleMatrixOfTransformations.txt");
+        List<Vector4> imageAfterSingleMatrixOfTransformation = ApplyTransformation(verts, SingleMatrixOfTransformation);
+
+        SaveVector4ToFile(imageAfterSingleMatrixOfTransformation, "imageAfterSingleMatrixOfTransformation.txt");
+
+        Matrix4x4 viewingMatrix = Matrix4x4.LookAt(new Vector3(5, 0, 2),new Vector3(2,1,0).normalized, Vector3.up);
+
+        DisplayMatrix(viewingMatrix);
+
+        SaveMatrixToFile(viewingMatrix, "ViewingMatrix.Txt");
+
+        List<Vector4> imageAfterViewMatrix = ApplyTransformation(imageAfterTranslation, viewingMatrix);
+
+        SaveVector4ToFile(imageAfterViewMatrix, "imageAfterViewingMatrix.txt");
+
+        float fieldOfView = 90f;
+        float aspectRatio = Screen.width / Screen.height;
+
+        Matrix4x4 projectionMatrix = Matrix4x4.Perspective(fieldOfView, aspectRatio, 1, 1000);
+
+        DisplayMatrix(projectionMatrix);
+
+        SaveMatrixToFile(projectionMatrix, "projectionMatrix.txt");
+
+        List<Vector4> imageAfterProjectionMatrix = ApplyTransformation(imageAfterViewMatrix, projectionMatrix);
+
+        SaveVector4ToFile(imageAfterProjectionMatrix, "imageAfterProjectionMatrix.txt");
+
+
+        //SingleMatrix For everything 
+        Matrix4x4 SingleMatrixForEverything = projectionMatrix * viewingMatrix * SingleMatrixOfTransformation;
+
+        DisplayMatrix(SingleMatrixForEverything);
+
+        SaveMatrixToFile(SingleMatrixForEverything, "SingleMatrixForEverything.txt");
+
+        List<Vector4> imageAfterSingleMatrixForEverything = ApplyTransformation(verts, SingleMatrixForEverything);
+
+        SaveVector4ToFile(imageAfterSingleMatrixForEverything, "imageAfterSingleMatrixForEverything.txt");
+        
+
+
     }
+
+
+
 
     private List<Vector4> convertToHomg(List<Vector3> vertices)
     {
