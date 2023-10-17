@@ -85,10 +85,33 @@ public class GraphicsPipeline : MonoBehaviour
         List<Vector4> imageAfterSingleMatrixForEverything = ApplyTransformation(verts, SingleMatrixForEverything);
 
         SaveVector4ToFile(imageAfterSingleMatrixForEverything, "imageAfterSingleMatrixForEverything.txt");
-        
+
+
+        Outcode outcode = new Outcode(new Vector2(3, -3));
+
+        print(outcode.outcodeString());
+
+    }
+
+    /*
+    private bool LineClip(ref Vector2 startPoint, ref Vector2 endPoint)
+    {
+        Outcode startOutcode = new Outcode(startPoint);
+        Outcode endOutcode = new Outcode(endPoint);
+
+        Outcode viewportOutcode = new Outcode();
+
+        if ((startOutcode == viewportOutcode) && (endOutcode == viewportOutcode)) return true;
+        if ((startOutcode * endOutcode) != viewportOutcode) return false;
+        //If neither return, more work to do...
 
 
     }
+    /*Get the outcodes of the two coordinates,
+         * If both outcodes are 0000 we can 'trivial accept' the coords
+         * If the 'AND' of the two outcodes IS NOT 0000 we can 'trivial reject'
+         * If the 'AND' of the coords IS 0000 there is more work to do...*/
+    
 
 
 
