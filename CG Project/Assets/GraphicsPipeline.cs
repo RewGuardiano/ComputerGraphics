@@ -98,7 +98,7 @@ public class GraphicsPipeline : MonoBehaviour
 
         print(startPoint + " " + endPoint);
 
-        Vector2Int start = new Vector2Int(101, 102);
+        Vector2Int start = new Vector2Int(102, 103);
         Vector2Int end = new Vector2Int(113, 80);
 
         List<Vector2Int> linePixels =  bresenham(start, end);
