@@ -122,6 +122,7 @@ public class GraphicsPipeline : MonoBehaviour
 
     void Update()
     {
+        // used to transform 3s model vertices into 2D pixels coordinates that can be drawn on a texture//
         Matrix4x4 matrixViewing = Matrix4x4.LookAt(new Vector3(0, 0, 10), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
         Matrix4x4 matrixProjection = Matrix4x4.Perspective(90, ((float)textureWidth / (float)textureHeight), 1, 1000);
         Matrix4x4 matrixWorld = Matrix4x4.identity;
@@ -187,6 +188,7 @@ public class GraphicsPipeline : MonoBehaviour
 
     private Vector2Int pixelise(Vector4 v, int textureWidth, int textureHeight)
     {
+        //Calculates the pixel coordinates of the vertex using the texturewidth and textureHeight//
         int x = (int)((textureWidth - 1) * (v.x + 1) / 2);
         int y = (int)((textureHeight - 1) * (v.y + 1) / 2);
         return new Vector2Int(x, y);
