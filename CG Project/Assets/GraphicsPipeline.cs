@@ -1,15 +1,24 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Experimental.GlobalIllumination;
 
 public class GraphicsPipeline : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    Renderer ourScreen;
+
+    int textureWidth = 255;
+    int textureHeight = 255;
+
+    public void Start()
     {
+
+        ourScreen = FindObjectOfType<Renderer>();
+
         Model myModel = new Model();
         List<Vector4> verts = convertToHomg(myModel.vertices);
 
@@ -103,8 +112,96 @@ public class GraphicsPipeline : MonoBehaviour
 
         List<Vector2Int> linePixels =  bresenham(start, end);
 
-        print(start + " " + end); 
- 
+        print(start + " " + end);
+
+        // Draw the line on the texture
+       
+
+
+    }
+
+    void Update()
+    {
+        Matrix4x4 matrixViewing = Matrix4x4.LookAt(new Vector3(0, 0, 10), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+        Matrix4x4 matrixProjection = Matrix4x4.Perspective(90, ((float)textureWidth / (float)textureHeight), 1, 1000);
+        Matrix4x4 matrixWorld = Matrix4x4.identity;
+
+        Model myModel = new Model();
+        List<Vector4> verts = convertToHomg(myModel.vertices);
+
+        // Multiply in reverse order, points are multiplied on the right, A * v
+        Matrix4x4 matrixSuper = matrixProjection * matrixViewing * matrixWorld;
+
+        List<Vector4> transformedVerts = divideByZ(ApplyTransformation(verts, matrixSuper));
+
+        List<Vector2Int> pixelPoints = pixelise(transformedVerts, textureWidth, textureHeight);
+
+
+
+        Texture2D lineDrawnTexture = new Texture2D(textureWidth, textureHeight);
+
+        ourScreen.material.mainTexture = lineDrawnTexture;
+
+        // Set the color for the line
+        UnityEngine.Color lineColor = UnityEngine.Color.red;
+
+        foreach (Vector3Int face in myModel.faces)
+        {
+            clipandPlot(pixelPoints[face.x], pixelPoints[face.y], lineDrawnTexture);
+        }
+
+    }
+    public void DrawLineOnTexture(List<Vector2Int> linePixels, Texture2D texture, UnityEngine.Color color)
+    {
+        foreach (Vector2Int point in linePixels)
+        {
+            texture.SetPixel(point.x, point.y, color);
+        }
+        texture.Apply();
+
+    }
+
+    private void clipandPlot(Vector2Int startIn, Vector2Int endIn, Texture2D lineDrawnTexture)
+    {
+        Vector2Int start = startIn;
+        Vector2Int end = endIn;
+        //  if (LineClip(ref start, ref end)) {
+        
+
+    
+
+
+    }
+
+    private List<Vector2Int> pixelise(List<Vector4> transformedVerts, int textureWidth, int textureHeight)
+    {
+        List<Vector2Int> output = new List<Vector2Int>();
+        foreach (Vector4 v in transformedVerts)
+        {
+            output.Add(pixelise(v, textureWidth, textureHeight));
+        }
+
+        return output;
+
+    }
+
+    private Vector2Int pixelise(Vector4 v, int textureWidth, int textureHeight)
+    {
+        int x = (int)((textureWidth - 1) * (v.x + 1) / 2);
+        int y = (int)((textureHeight - 1) * (v.y + 1) / 2);
+        return new Vector2Int(x, y);
+    }
+
+    private List<Vector4> divideByZ(List<Vector4> vector4s)
+    {
+        List<Vector4> output = new List<Vector4>();
+
+        foreach (Vector4 v in vector4s)
+        {
+            output.Add(new Vector4(v.x / v.w, v.y / v.w, v.z, v.w));
+        }
+
+        return output;
     }
 
     List<Vector2Int> bresenham(Vector2Int start, Vector2Int end)
@@ -309,9 +406,5 @@ public class GraphicsPipeline : MonoBehaviour
 
 
 
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
+  
 }
