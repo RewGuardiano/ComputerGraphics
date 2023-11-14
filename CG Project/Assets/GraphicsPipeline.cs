@@ -14,15 +14,16 @@ public class GraphicsPipeline : MonoBehaviour
     int textureWidth = 255;
     int textureHeight = 255;
 
+
+    Model myModel = new Model();
     UnityEngine.Color lineColor = UnityEngine.Color.red;
     float angle = 0;
 
-    Model myModel = new Model();
     public void Start()
     {
 
         ourScreen = FindObjectOfType<Renderer>();
-        Model myModel = new Model();
+    
 
         myModel.CreateUnityGameObject();
 
@@ -127,13 +128,16 @@ public class GraphicsPipeline : MonoBehaviour
     }
 
     void Update()
+
     {
+        angle++;
+
         // used to transform 3s model vertices into 2D pixels coordinates that can be drawn on a texture//
         Matrix4x4 matrixViewing = Matrix4x4.LookAt(new Vector3(0, 0, 10), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
         Matrix4x4 matrixProjection = Matrix4x4.Perspective(90, ((float)textureWidth / (float)textureHeight), 1, 1000);
-        Matrix4x4 matrixWorld = Matrix4x4.TRS(Vector3.zero,Quaternion.AngleAxis(angle,Vector3.one.normalized),Vector3.one);
+        Matrix4x4 matrixWorld = Matrix4x4.TRS(new Vector3(0,0,5),Quaternion.AngleAxis(angle,Vector3.one.normalized),Vector3.one);
+        matrixWorld = matrixWorld * Matrix4x4.TRS(new Vector3(0, 0, 5), Quaternion.identity, Vector3.one);
 
-  
 
         List<Vector4> verts = convertToHomg(myModel.vertices);
 
@@ -180,6 +184,11 @@ public class GraphicsPipeline : MonoBehaviour
 
 
             DrawLineOnTexture(pixels, lineDrawnTexture, lineColor);
+        }
+        else
+        {
+            print(start);
+            print(end);
         }
 
     }
