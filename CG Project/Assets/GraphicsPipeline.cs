@@ -21,13 +21,16 @@ public class GraphicsPipeline : MonoBehaviour
 
     public void Start()
     {
+        Vector2 s1 = new Vector2(-0.09f, 0.61f), e1 = new Vector2(-1.11f, -1.69f);
+        LineClip(ref s1, ref e1);
+
 
         ourScreen = FindObjectOfType<Renderer>();
-    
 
+        Model myModel = new Model();
+        List<Vector4> verts = convertToHomg(myModel.vertices);
         myModel.CreateUnityGameObject();
 
-        List<Vector4> verts = convertToHomg(myModel.vertices);
 
         Vector3 axis = (new Vector3(17, 0, 0)).normalized;
         Matrix4x4 rotationMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.AngleAxis(-31, axis), Vector3.one);
@@ -103,6 +106,11 @@ public class GraphicsPipeline : MonoBehaviour
         SaveVector4ToFile(imageAfterSingleMatrixForEverything, "imageAfterSingleMatrixForEverything.txt");
 
 
+        List<Vector4> viewVertices3D = ApplyTransformation(imageAfterTranslation, viewingMatrix);
+
+        List<Vector4> viewVertices2D = ApplyTransformation(viewVertices3D, projectionMatrix);
+
+
         Outcode outcode = new Outcode(new Vector2(3, -3));
 
         print(outcode.outcodeString());
@@ -114,6 +122,8 @@ public class GraphicsPipeline : MonoBehaviour
 
         print(startPoint + " " + endPoint);
 
+        // Draw the line on the texture
+
         Vector2Int start = new Vector2Int(102, 103);
         Vector2Int end = new Vector2Int(113, 80);
 
@@ -121,7 +131,7 @@ public class GraphicsPipeline : MonoBehaviour
 
         print(start + " " + end);
 
-        // Draw the line on the texture
+       
        
 
 
@@ -135,7 +145,7 @@ public class GraphicsPipeline : MonoBehaviour
         // used to transform 3s model vertices into 2D pixels coordinates that can be drawn on a texture//
         Matrix4x4 matrixViewing = Matrix4x4.LookAt(new Vector3(0, 0, 10), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
         Matrix4x4 matrixProjection = Matrix4x4.Perspective(90, ((float)textureWidth / (float)textureHeight), 1, 1000);
-        Matrix4x4 matrixWorld = Matrix4x4.TRS(new Vector3(0,0,5),Quaternion.AngleAxis(angle,Vector3.one.normalized),Vector3.one);
+        Matrix4x4 matrixWorld = Matrix4x4.TRS(Vector3.zero,Quaternion.AngleAxis(angle,Vector3.one.normalized),Vector3.one);
         matrixWorld = matrixWorld * Matrix4x4.TRS(new Vector3(0, 0, 5), Quaternion.identity, Vector3.one);
 
 
@@ -157,12 +167,31 @@ public class GraphicsPipeline : MonoBehaviour
 
         foreach (Vector3Int face in myModel.faces)
         {
-            clipandPlot(transformedVerts[face.x], transformedVerts[face.y], lineDrawnTexture);
-            clipandPlot(transformedVerts[face.y], transformedVerts[face.z], lineDrawnTexture);
-            clipandPlot(transformedVerts[face.z], transformedVerts[face.x], lineDrawnTexture);
+            if (!shouldCull(transformedVerts[face.x] , transformedVerts[face.y] ,transformedVerts[face.z])) 
+            {
+                clipandPlot(transformedVerts[face.x], transformedVerts[face.y], lineDrawnTexture);
+                clipandPlot(transformedVerts[face.y], transformedVerts[face.z], lineDrawnTexture);
+                clipandPlot(transformedVerts[face.z], transformedVerts[face.x], lineDrawnTexture);
+            }
         }
         lineDrawnTexture.Apply();
     }
+
+    private bool shouldCull(Vector4 vert1, Vector4 vert2, Vector4 vert3)
+    {
+        Vector3 v1 = new Vector3(vert1.x,vert1.y,0);
+        Vector3 v2 = new Vector3(vert2.x,vert2.y,0);
+        Vector3 v3 = new Vector3(vert3.x,vert3.y,0);
+
+        return (Vector3.Cross(v2-v1,v3-v2).z<=0);
+    }
+
+    void FloodFill(Vector2 Location )
+    {
+        //if(!)
+
+    }
+
     public void DrawLineOnTexture(List<Vector2Int> linePoints, Texture2D texture, UnityEngine.Color color)
     {
         foreach (Vector2Int point in linePoints)
@@ -425,7 +454,7 @@ public class GraphicsPipeline : MonoBehaviour
         }
     }
 
-
+    // 
 
   
 }
