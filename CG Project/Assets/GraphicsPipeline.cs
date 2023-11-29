@@ -16,9 +16,15 @@ public class GraphicsPipeline : MonoBehaviour
 
 
     Model myModel = new Model();
+
+    UnityEngine.Color fillColour = UnityEngine.Color.cyan;
+    UnityEngine.Color lightColor = UnityEngine.Color.blue;
     UnityEngine.Color lineColor = UnityEngine.Color.red;
+    Vector3 lightDirection = new Vector3(1, -1, 1).normalized; // example direction
+    float lightIntensity = 1.0f; // full intensity
     float angle = 0;
 
+    internal UnityEngine.Color backgroundColour;
     public void Start()
     {
         Vector2 s1 = new Vector2(-0.09f, 0.61f), e1 = new Vector2(-1.11f, -1.69f);
@@ -160,21 +166,86 @@ public class GraphicsPipeline : MonoBehaviour
 
 
 
-        Texture2D lineDrawnTexture = new Texture2D(textureWidth, textureHeight);
+        Texture2D screenTexture = new Texture2D(textureWidth, textureHeight);
+        print(screenTexture.GetPixel(10, 10));
+        backgroundColour = screenTexture.GetPixel(10, 10);
 
         Destroy(ourScreen.material.mainTexture);
-        ourScreen.material.mainTexture = lineDrawnTexture;
+
+        ourScreen.material.mainTexture = screenTexture;
+
+        bool[,] frameBuffer = new bool[textureWidth, textureHeight];
+
 
         foreach (Vector3Int face in myModel.faces)
         {
-            if (!shouldCull(transformedVerts[face.x] , transformedVerts[face.y] ,transformedVerts[face.z])) 
+
+            if (!shouldCull(transformedVerts[face.x], transformedVerts[face.y], transformedVerts[face.z]))
             {
-                clipandPlot(transformedVerts[face.x], transformedVerts[face.y], lineDrawnTexture);
-                clipandPlot(transformedVerts[face.y], transformedVerts[face.z], lineDrawnTexture);
-                clipandPlot(transformedVerts[face.z], transformedVerts[face.x], lineDrawnTexture);
+                Vector2Int total = new Vector2Int(0, 0);
+                int count = 0;
+
+
+                Vector2Int v = clipandPlot(transformedVerts[face.x], transformedVerts[face.y], screenTexture, ref frameBuffer);
+                if (v.x >= 0)
+                {
+                    total = new Vector2Int(total.x + v.x, total.y + v.y);
+                    count++;
+                }
+
+                Vector2Int v1 = clipandPlot(transformedVerts[face.y], transformedVerts[face.z], screenTexture, ref frameBuffer);
+                if (v1.x >= 0)
+                {
+                    total = new Vector2Int(total.x + v1.x, total.y + v1.y);
+                    count++;
+                }
+
+                Vector2Int v2 = clipandPlot(transformedVerts[face.z], transformedVerts[face.x], screenTexture, ref frameBuffer);
+                if (v2.x >= 0)
+                {
+                    total = new Vector2Int(total.x + v2.x, total.y + v2.y);
+                    count++;
+                }
+
+
+                if (count > 0)
+                {
+                    FloodFill(averagePosition(total, count), fillColour, screenTexture, ref frameBuffer);
+                    //if result not in viewport do some work, weight towards point that is in viewport
+                    // new method weightedAverage() 
+                }
             }
         }
-        lineDrawnTexture.Apply();
+
+        foreach (Vector3Int face in myModel.faces)
+        {
+            // Calculate the normal of the face
+            Vector3 v0 = transformedVerts[face.x];
+            Vector3 v1 = transformedVerts[face.y];
+            Vector3 v2 = transformedVerts[face.z];
+            Vector3 normal = Vector3.Cross(v1 - v0, v2 - v0).normalized;
+
+            // Calculate the dot product between the normal and light direction
+            float dot = Mathf.Max(Vector3.Dot(normal, lightDirection), 0);
+            UnityEngine.Color faceColor = lightColor * dot * lightIntensity;
+
+            // Apply lighting to face color
+            // ... [rest of your code for rendering the face]
+        }
+
+        screenTexture.Apply();
+    }
+
+    private Vector2Int averagePosition(Vector2Int total, int count)
+    {
+        return new Vector2Int(total.x / count, total.y / count);
+    }
+
+    private Vector2Int averagePosition(Vector4 v1, Vector4 v2, Vector4 v3)
+    {
+        Vector4 average = (v1 + v2 + v3) / 3;
+
+        return pixelise(average, textureWidth, textureHeight);
     }
 
     private bool shouldCull(Vector4 vert1, Vector4 vert2, Vector4 vert3)
@@ -186,10 +257,40 @@ public class GraphicsPipeline : MonoBehaviour
         return (Vector3.Cross(v2-v1,v3-v2).z<=0);
     }
 
-    void FloodFill(Vector2 Location )
+    void FloodFill(Vector2Int startLocation, UnityEngine.Color fillColour, Texture2D screenTexture, ref bool[,] frameBuffer)
     {
-        //if(!)
+        Stack<Vector2Int> stack = new Stack<Vector2Int>();
+        stack.Push(startLocation);
 
+        while (stack.Count > 0)
+        {
+            Vector2Int location = stack.Pop();
+
+            if (!IsWithinBounds(location) || frameBuffer[location.x, location.y])
+            {
+                continue;
+            }
+
+            SetPixel(location, fillColour, ref frameBuffer);
+
+            // Add adjacent pixels to the stack
+            stack.Push(new Vector2Int(location.x + 1, location.y));
+            stack.Push(new Vector2Int(location.x - 1, location.y));
+            stack.Push(new Vector2Int(location.x, location.y + 1));
+            stack.Push(new Vector2Int(location.x, location.y - 1));
+        }
+    }
+
+    bool IsWithinBounds(Vector2Int location)
+    {
+        return (location.x >= 0) && (location.x < textureWidth) && (location.y >= 0) && (location.y < textureHeight);
+    }
+
+    // Method to set a pixel's color
+    void SetPixel(Vector2Int location, UnityEngine.Color color, ref bool[,] frameBuffer)
+    {
+        (ourScreen.material.mainTexture as Texture2D).SetPixel(location.x, location.y, color);
+        frameBuffer[location.x, location.y] = true;
     }
 
     public void DrawLineOnTexture(List<Vector2Int> linePoints, Texture2D texture, UnityEngine.Color color)
@@ -202,23 +303,22 @@ public class GraphicsPipeline : MonoBehaviour
 
     }
 
-    private void clipandPlot(Vector4 startIn, Vector4 endIn, Texture2D lineDrawnTexture)
+    private Vector2Int clipandPlot(Vector4 startIn, Vector4 endIn, Texture2D lineDrawnTexture, ref bool[,] frameBuffer)
     {
+        Vector2Int output = new Vector2Int(-1, -1);
+
         Vector2 start =new Vector2(startIn.x , startIn.y);
         Vector2 end = new Vector2(endIn.x,endIn.y);
         if (LineClip(ref start, ref end))
         {
+            output = pixelise((start + end) / 2, textureWidth, textureHeight);
 
             List<Vector2Int> pixels = bresenham(pixelise(start, textureWidth, textureHeight), pixelise(end, textureWidth, textureHeight));
 
 
             DrawLineOnTexture(pixels, lineDrawnTexture, lineColor);
         }
-        else
-        {
-            print(start);
-            print(end);
-        }
+        return output;
 
     }
 
